@@ -1,0 +1,73 @@
+/**
+* @author:Dhilip
+* @date : 16/07/2024
+* @description : Rollup summary(Account to Contact)
+**/
+
+trigger ContactTrigger on Contact (after insert,after delete,after update,after undelete) {
+
+    ContactcountHandler obj=new ContactcountHandler();
+}
+
+
+Handler
+
+public class ContactcountHandler {
+    
+    List<Contact> triggerOld;
+    List<Contact> triggerNew;
+    Map<id,Contact> triggerNewMap;
+    Map<id,contact> triggerOldMap;
+    
+    public ContactcountHandler(){
+        triggerOld=(list<Contact>) trigger.Old;
+        triggerNew=(list<Contact>)trigger.New;
+        triggerOldMap=(Map<id,contact>) trigger.OldMap;
+        triggerNewMap=(Map<id,contact>) trigger.NewMap;
+        doAction();
+    }
+    
+    public void doAction(){
+        switch on trigger.OperationType{
+            When AFTER_INSERT,AFTER_UNDELETE{
+                updateContactInAccount(triggerNew);
+            }
+            when AFTER_DELETE{
+                updateContactInAccount(triggerOld);
+            }
+            When AFTER_UPDATE{
+                updateContactInAccount(triggerOld);
+            }
+        }
+    }
+    
+    public void updateContactInAccount(List<Contact> conList){
+        Set<id> accIds=new Set<id>();
+        for(Contact conRec:conList){
+            if(conRec.AccountId!=null){
+                if(Trigger.isUpdate && conRec.AccountId!= triggerOldMap.get(conRec.Id).AccountId)
+                {
+                    accIds.add(conRec.AccountId);
+                    accIds.add(triggerOldMap.get(conRec.Id).AccountId);
+                }
+                else{
+                    accIds.add(conRec.AccountId);
+                }
+                
+            }
+        }
+        if(!accIds.isEmpty()){
+            List<Account> accountList=[select Id,No_of_Contacts__c,(select id from contacts) from Account
+                                       where id in :accids];
+            List<Account> updateAccount=new List<Account>();
+            for(Account accRec:accountList){
+                Account record=new Account();
+                record.Id=accRec.Id;
+                record.No_of_Contacts__c=accRec.contacts.size();
+                updateAccount.add(record);
+            }
+            
+            update updateAccount;
+        }
+    }
+}
