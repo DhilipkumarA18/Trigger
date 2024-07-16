@@ -10,7 +10,7 @@ trigger ContactTrigger on Contact (after insert,after delete,after update,after 
 }
 
 
-Handler
+
 
 public class ContactcountHandler {
     
